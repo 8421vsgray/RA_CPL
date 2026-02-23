@@ -18,18 +18,29 @@ def cluster_acc(y_true, y_pred):
 
 def evaluate_all(features, labels, centroids=None):
     """
-    一键输出 ACC, NMI, ARI。
-    如果 centroids 为 None，跑 KMeans (上限)；
-    如果 centroids 有值，跑距离指派 (原生实力)。
+    统一评估标准：
+    1. 如果提供 centroids: 执行原生投影指派（Pure Inference）
+    2. 如果 centroids 为 None: 执行 KMeans 发现（Potential Analysis）
+    返回：dict 格式，彻底解决解包变量个数不匹配的问题
     """
+    results = {}
+
     if centroids is not None:
-        # 指派模式 (Pure Inference)
-        dist = cdist(features, centroids.detach().cpu().numpy(), metric='euclidean')
+        # 原生质心映射
+        from scipy.spatial.distance import cdist
+        dist = cdist(features, centroids, metric='euclidean')
         y_pred = np.argmin(dist, axis=1)
+        results['centers'] = centroids
     else:
-        # KMeans 模式 (Feature Bound)
+        # KMeans 发现
+        from sklearn.cluster import KMeans
         km = KMeans(n_clusters=10, n_init=20, random_state=42).fit(features)
         y_pred = km.labels_
-        return cluster_acc(labels, y_pred), nmi_score(labels, y_pred), ari_score(labels, y_pred), km.cluster_centers_
+        results['centers'] = km.cluster_centers_
 
-    return cluster_acc(labels, y_pred), nmi_score(labels, y_pred), ari_score(labels, y_pred)
+    # 计算三大核心指标
+    results['acc'] = cluster_acc(labels, y_pred)
+    results['nmi'] = nmi_score(labels, y_pred)
+    results['ari'] = ari_score(labels, y_pred)
+
+    return results

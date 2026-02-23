@@ -17,11 +17,20 @@ class RACPLModel_IDEC(nn.Module):
         self.centroids = nn.Parameter(torch.randn(n_clusters, latent_dim))
         nn.init.xavier_uniform_(self.centroids.data)
 
+    # --- 新增战神级接口：统一编码逻辑 ---
+    def encode(self, x, view_idx):
+        """
+        专门用于推理和评估的编码接口
+        确保特征被映射到 L2 单位超球面上
+        """
+        z = self.encoders[view_idx](x)
+        return F.normalize(z, p=2, dim=1)
+
     def forward(self, views):
         z_list = []
         for i, v in enumerate(views):
-            z = self.encoders[i](v)
-            z_norm = F.normalize(z, p=2, dim=1) # 必须 L2 归一化，保持在超球面上
+            # 调用内部定义的 encode 保证逻辑复用
+            z_norm = self.encode(v, i)
             z_list.append(z_norm)
         return z_list
 
