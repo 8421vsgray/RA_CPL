@@ -1,0 +1,11 @@
+# 忽略数据
+data/*.mat
+data/*.npy
+
+# 忽略权重文件
+*.pth
+*.pkl
+
+# 忽略 Python 缓存
+__pycache__/
+.ipynb_checkpoints/
